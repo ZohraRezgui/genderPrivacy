@@ -8,7 +8,7 @@ config.embedding_size = 512 # embedding size of model
 config.lr = 0.01     
 config.headid_lr = 0.01  
 
-config.data = 'ColorFeret'
+config.data = 'LFW'
 config.experiment = "OneDataset"
 config.loss="ArcFace"  
 
@@ -42,7 +42,7 @@ config.rec = "/home/rezguiz/datasets/val_folder" # path to the val folder
 config.num_epoch =  100
 config.warmup_epoch = -1
 config.val_targets =  ["lfw",  "agedb_30"]
-config.test_targets = ["lfw", "agedb_30", "colorferet","vggface2"]
+config.test_targets = ["lfw", "agedb_30","vggface2"]
 config.eval_step= 1000
 
 

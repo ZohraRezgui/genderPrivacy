@@ -45,7 +45,7 @@ python finetune.py
 Please refer to our paper for the choice of hyperparameters.
 ## Evaluate
 ```bash
-python evaluate.py --log_root "path/to/log" --model_root "path/to/model/directory"  --experiment-name "experimentname" --reference_pth "path/to/reference/csv/results" --pretrained_pth "path/to/pretrained/model/weights" --ft True --gpu-id 0
+python eval/evaluation.py --log_root "path/to/log" --model_root "path/to/model/directory"  --experiment-name "experimentname" --reference_pth "path/to/reference/csv/results" --pretrained_pth "path/to/pretrained/model/weights" --ft True --gpu-id 0
 
 ```
 ```experiment-name``` should refer to the different types of training settings. For instance if you train using only one dataset e.g ColorFeret, ```experiment-name``` = ```OneDataset/ColorFeret```. The script ```evaluate.py``` will run the evaluations of all the models generated with this experiment setting.

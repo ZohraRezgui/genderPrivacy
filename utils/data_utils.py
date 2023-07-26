@@ -1,7 +1,7 @@
 
 import numpy as np
-from torch.utils.data import Dataset
-
+import os
+import time
 
 
 
@@ -31,4 +31,10 @@ def make_weights_for_balanced_classes(samples, target, nclasses):
         weight[idx] = weight_per_class[target[idx]]                                  
     return weight
 
-
+def create_directory(dir):
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+    elif os.path.exists(dir):
+        for file in os.listdir(dir):
+            os.remove(os.path.join(dir, file))
+        time.sleep(2)

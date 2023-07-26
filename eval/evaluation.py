@@ -2,9 +2,13 @@ import logging
 import os
 import argparse
 import torch
+import sys
 import numpy as np
 import csv
 from evaluation_utils import _get_model, _get_model_ft, get_data, evaluate_gender, calculate_pic, read_metrics_prepivacy
+sys.path.append('/home/rezguiz/genderPrivacy')
+
+from utils.data_utils import  create_directory
 from utils.utils_callbacks import CallBackVerificationFT, CallBackVerification
 from utils.utils_logging import init_logging
 from config.config import config as cfg
@@ -16,11 +20,11 @@ def evaluate_model(log_root, model_root, experiment_name, reference_pth, pretrai
     all_models = os.listdir(experiment_folder)
 
     for m in all_models:
-        log_root = logging.getLogger()
-        init_logging(log_root, 0, experiment_folder, 'evaluate.log')
+        root_logger = logging.getLogger()
+        init_logging(root_logger, experiment_folder, 'evaluate.log')
 
         logging.info(f'Evaluating-{m}')
-        if experiment_name == 'ReferenceEvaluations':
+        if experiment_name == 'reference':
             output_folder = experiment_folder
         else:
             output_folder = os.path.join(experiment_folder, m)
@@ -44,7 +48,7 @@ def evaluate_model(log_root, model_root, experiment_name, reference_pth, pretrai
                     for ds in cfg.test_targets:
                         img_files, id_labels, gender_labels = get_data(ds)
 
-                        accuracies, balanced = evaluate_gender(img_files, gender_labels, id_labels, net=modelb, ft_layer=fc, ft=ft)
+                        accuracies, balanced = evaluate_gender(img_files, gender_labels, id_labels, net=modelb, ft_layer=fc)
                         res_dict[ds] = [accuracies, balanced]
 
                     step = int(w.split("backbone")[0])
@@ -82,7 +86,7 @@ def evaluate_model(log_root, model_root, experiment_name, reference_pth, pretrai
                     for ds in cfg.test_targets:
                         img_files, id_labels, gender_labels = get_data(ds)
 
-                        accuracies, balanced = evaluate_gender(img_files, gender_labels, id_labels, net=model, ft=ft)
+                        accuracies, balanced = evaluate_gender(img_files, gender_labels, id_labels, net=model)
                         res_dict[ds] = accuracies, balanced
 
                     step = int(w.split("backbone")[0])

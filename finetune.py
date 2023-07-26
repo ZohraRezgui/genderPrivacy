@@ -13,23 +13,20 @@ from utils import losses
 
 from utils.dataset import VGGDataset, LFWDataset, ColorFeretDataset, AgeDBDataset, TrainFoldsDataset
 from utils.utils_callbacks import CallBackVerificationFT, CallBackLogging, CallBackModelCheckpoint
-from utils.data_utils import make_weights_for_balanced_classes, get_gender, get_unique_gender
+from utils.data_utils import make_weights_for_balanced_classes, get_gender, get_unique_gender, create_directory
 from utils.utils_logging import AverageMeter, init_logging
 from backbones.iresnet import  ProjectionLayer, iresnet100, iresnet50
 
 def train():
     torch.cuda.empty_cache()
     device = torch.device('cuda:0')
-    csvpath = os.path.join(cfg.log_dir,cfg.experiment, cfg.data, 'config.csv')
+    csvdir = os.path.join(cfg.log_dir,cfg.experiment, cfg.data)
+    csvpath = os.path.join(csvdir, 'config.csv')
 
 
-    # Create output folder if it is not exist
-    if not os.path.exists(cfg.output):
-        os.makedirs(cfg.output)
-    elif os.path.exists(cfg.output):
-        for file in os.listdir(cfg.output):
-            os.remove(os.path.join(cfg.output, file))
-        time.sleep(2)
+    # Create output folders if it is not exist
+    create_directory(cfg.output)
+    create_directory(csvdir)
 
     # Saving hyperparameters in csv
     header =  ['output','TrainData',	'Arcloss-M',	'Arcloss-S'	,'lr-network',	'lr-header',	'epochs', 'alpha', 'beta', 'batchSize']
@@ -43,7 +40,7 @@ def train():
 
     # intiate logger to write the output of log file
     log_root = logging.getLogger()
-    init_logging(log_root,  cfg.log_dir)
+    init_logging(log_root, csvdir)
 
     # create instance of dataset
     if cfg.data == "VGGFace2":

@@ -19,7 +19,7 @@ import xml.etree.ElementTree as ET
 from collections import namedtuple
 sys.path.append('/home/rezguiz/genderPrivacy')
 from backbones.iresnet import ProjectionLayer, iresnet50
-import config.config as cfg
+from config.config import config as cfg
 
 def read_metrics_prepivacy(ds, reference_pth):
     csv_reader = csv.DictReader(open(reference_pth), delimiter=',')
@@ -84,7 +84,7 @@ def _get_model_ft(ctx, model_path, pretrained_pth):
     return frozen, project
 
 
-def read_lfw_data(attribute_dir, img_dir):
+def read_lfw_data(img_dir, attribute_dir):
     id_folders = os.listdir(img_dir)
     with(open(os.path.join(attribute_dir, 'female_names.txt'), 'r')) as f:
         female = f.readlines()
@@ -149,7 +149,7 @@ def read_agedb_data(img_dir):
     print("loaded agedb for gender classification...")
     return img_file, id_label, gender
 
-def read_vggface2_data(attribute_dir, root_dir):
+def read_vggface2_data(root_dir,attribute_dir):
     lb = 0
     count = 0
     id_label = []
@@ -181,7 +181,7 @@ def read_vggface2_data(attribute_dir, root_dir):
     gender = np.array(gender)
     return img_file, id_label, gender
 
-def read_colorferet_data(attribute_pth, root_dir):
+def read_colorferet_data(root_dir, attribute_pth):
     lb = 0
     id_label = []
     gender= []
@@ -275,9 +275,9 @@ def get_batch_feature(image_path_list, model, batch_size=64, ft_layer=None):
             images.append(a)
 
         if ft_layer is None:
-            emb =  _getFeatureBlob(images)
+            emb =  _getFeatureBlob(images, model)
         else:
-            emb = _getFeatureBlob_ft(images, ft_layer)
+            emb = _getFeatureBlob_ft(images, model, ft_layer)
         features.append(emb)
         # print("batch" + str(i))
 
@@ -291,24 +291,23 @@ def get_batch_feature(image_path_list, model, batch_size=64, ft_layer=None):
 
 def get_data(test_set):
     data_readers = {
-        "lfw": read_lfw_data,
-        "agedb_30": read_agedb_data,
-        "agedb": read_agedb_data,
-        "vggface2": read_vggface2_data,
-        "colorferet": read_colorferet_data
+        "lfw": read_lfw_data(os.path.join(cfg.data_dir, "lfw_aligned"), os.path.join(cfg.data_dir,'LFW_gender')),
+        "agedb_30": read_agedb_data(os.path.join(cfg.data_dir, 'age_db_aligned')),
+        "vggface2": read_vggface2_data(os.path.join(cfg.data_dir,'samples/vggface2'), os.path.join(cfg.data_dir,"VGGFace2/metadata/")),
+        # "colorferet": read_colorferet_data(os.path.join(cfg.data_dir, 'ColorFeret_aligned'), os.path.join(cfg.data_dir,"colorferet/dvd1/data/ground_truths/xml/subjects.xml"))
     }
 
     if test_set in data_readers:
-        img_files, id_labels, gender_labels = data_readers[test_set]()
+        img_files, id_labels, gender_labels = data_readers[test_set]
     else:
         raise NotImplementedError(f"Data loading for '{test_set}' is not implemented.")
 
     return img_files, id_labels, gender_labels
 
 @torch.no_grad()
-def evaluate_gender(img_files, gender_labels, id_labels, net=None, ft_layer=False):
+def evaluate_gender(img_files, gender_labels, id_labels, net=None, ft_layer=None):
     
-    features = get_batch_feature(img_files, net, ft_layer, batch_size=64)
+    features = get_batch_feature(img_files, net, 64, ft_layer)
     cv = StratifiedGroupKFold(n_splits=3, shuffle=False)
 
     models = {
