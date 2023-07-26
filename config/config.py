@@ -19,15 +19,14 @@ config.beta=1
 config.batch_size =128 
 
 # train model output folder
-
 config.output = "/home/rezguiz/genderPrivacy/models/" + config.experiment + "/" + config.data + "/" +str(config.alpha) + "L1" +"_" + str(config.beta) + "L2" + "_lr" + str(config.lr).replace('.','') + "_m" + str(config.m) + "_s" +str(config.m)   # train model output folder
 config.data_dir = "/home/rezguiz/datasets"
-config.log_dir = "/home/rezguiz/MyLogs"
+config.log_dir = "/home/rezguiz/logs"
 if os.path.isdir(config.output):
     config.output += '_extra'
 
 
-config.output_ori = "/home/rezguiz/Privacy/output/original_vggface2"
+config.output_ori = "/home/rezguiz/genderPrivacy/models/reference"
 config.global_step = 0 # step to resume
 
 
@@ -40,7 +39,6 @@ config.SE=False # SEModule
 
 
 config.rec = "/home/rezguiz/datasets/val_folder" # path to the val folder
-config.att="/home/rezguiz/datasets/VGGFace2/metadata/"
 config.num_epoch =  100
 config.warmup_epoch = -1
 config.val_targets =  ["lfw",  "agedb_30"]

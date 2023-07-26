@@ -47,7 +47,7 @@ def train():
 
     # create instance of dataset
     if cfg.data == "VGGFace2":
-        trainset = VGGDataset(root_dir=os.path.join(cfg.data_dir,'samples/vggface2'),attribute=cfg.att)
+        trainset = VGGDataset(root_dir=os.path.join(cfg.data_dir,'samples/vggface2'),attribute=os.path.join(cfg.data_dir,"VGGFace2/metadata/"))
     elif cfg.data=="LFW":
         trainset = LFWDataset(root_dir=os.path.join(cfg.data_dir, "lfw_aligned") ,attribute=os.path.join(cfg.data_dir,"LFW_gender" ))
     elif cfg.data == "ColorFeret":
