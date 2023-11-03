@@ -38,7 +38,7 @@ config.SE=False # SEModule
 
 
 
-config.rec = "/home/rezguiz/datasets/val_folder" # path to the val folder
+config.rec = "/home/rezguiz/datasets/faces_webface_112x112" # path to the val folder
 config.num_epoch =  100
 config.warmup_epoch = -1
 config.val_targets =  ["lfw",  "agedb_30"]

@@ -179,6 +179,8 @@ def read_vggface2_data(root_dir,attribute_dir):
     
     id_label = np.array(id_label)
     gender = np.array(gender)
+    print("loaded vggface2 for gender classification...")
+
     return img_file, id_label, gender
 
 def read_colorferet_data(root_dir, attribute_pth):
@@ -213,7 +215,9 @@ def read_colorferet_data(root_dir, attribute_pth):
                 gender.append(gender_dict[id_dir])
     
     id_label = np.array(id_label)
-    gender = np.array(gender)            
+    gender = np.array(gender)  
+    print("loaded colorferet for gender classification...")
+          
     return img_file, id_label, gender
 
 
@@ -286,17 +290,16 @@ def get_batch_feature(image_path_list, model, batch_size=64, ft_layer=None):
     print('output features:', features.shape)
     return features
 
-
-
-
-def get_data(test_set):
+def load_test_data():
     data_readers = {
         "lfw": read_lfw_data(os.path.join(cfg.data_dir, "lfw_aligned"), os.path.join(cfg.data_dir,'LFW_gender')),
-        "agedb_30": read_agedb_data(os.path.join(cfg.data_dir, 'age_db_aligned')),
+        "agedb_30": read_agedb_data(os.path.join(cfg.data_dir, 'age_db_mtcnn')),
         "vggface2": read_vggface2_data(os.path.join(cfg.data_dir,'samples/vggface2'), os.path.join(cfg.data_dir,"VGGFace2/metadata/")),
         # "colorferet": read_colorferet_data(os.path.join(cfg.data_dir, 'ColorFeret_aligned'), os.path.join(cfg.data_dir,"colorferet/dvd1/data/ground_truths/xml/subjects.xml"))
     }
+    return data_readers
 
+def get_data(test_set, data_readers):
     if test_set in data_readers:
         img_files, id_labels, gender_labels = data_readers[test_set]
     else:
