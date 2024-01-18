@@ -30,12 +30,12 @@ pip install -r requirements.txt
 ```
 ## Data
 The datasets LFW, AgeDB, ColorFeret and a sample of VGGFace2 are used in this project.
-- [] We provide the verification pairs for ColorFeret and VGGFace2. 
+- [ ] We provide the verification pairs for ColorFeret and VGGFace2. 
 - As for AgeDB and LFW, the standard verification pairs are used according to AgeDB-30 partition and the view 1 of the LFW verification protocole.
 
 ## Model
 All the finetuning training is performed on the iResNet50 architecture pretrained with an ArcFace loss on the VGGFace2 dataset.  
-- [] We provide the weights model finetuned on AgeDB with the privacy constraint $L_{p} = 20 L{p_1} + L{p_2}$.
+- [ ] We provide the weights model finetuned on AgeDB with the privacy constraint $L_{p} = 20 L{p_1} + L{p_2}$.
 
 
 ## Training
