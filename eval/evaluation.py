@@ -23,7 +23,7 @@ def evaluate_model(log_root, model_root, experiment_name, reference_pth, pretrai
 
     for m in all_models:
 
-        if experiment_name == 'reference':
+        if ft == False:
             output_folder = experiment_folder
         else:
             output_folder = os.path.join(experiment_folder, m)
@@ -43,7 +43,7 @@ def evaluate_model(log_root, model_root, experiment_name, reference_pth, pretrai
         res_dict = {}
         for w in weights:
             if "backbone" in w:
-
+                
                 if ft:
                     print("Finetuned model")
                     frozen, layer = _get_model_ft(gpu_id, os.path.join(output_folder, w), pretrained_pth)
@@ -57,9 +57,9 @@ def evaluate_model(log_root, model_root, experiment_name, reference_pth, pretrai
                         res_dict[ds] = acc_bacc_res
 
                     step = int(w.split("backbone")[0])
-                    eers = callback_verification(step, modelb, fc, 0, forced=True, get_metrics=True)
+                    eers, tars = callback_verification(step, modelb, fc, 0, forced=True, get_metrics=True)
 
-                    header = ['Step', 'Dataset', 'EER', 'ACC-Gender-LogReg', 'BACC-Gender-LogReg', 'ACC-Gender-SVM', 'BACC-Gender-SVM', 'ACC-Gender-RBF', 'BACC-Gender-RBF', 'PIC']
+                    header = ['Step', 'Dataset', 'EER', 'TAR@FAR=0.1%', 'ACC-Gender-LogReg', 'BACC-Gender-LogReg', 'ACC-Gender-SVM', 'BACC-Gender-SVM', 'ACC-Gender-RBF', 'BACC-Gender-RBF','BACC-Gender-AVG', 'PIC']
                     
                     with open(csv_path, 'a', encoding='UTF8') as f:
                         writer = csv.writer(f)
@@ -68,8 +68,9 @@ def evaluate_model(log_root, model_root, experiment_name, reference_pth, pretrai
                         for k, ds in enumerate(res_dict.keys()):
                             pre_privacy = read_metrics_prepivacy(ds, reference_pth)
                             eer = eers[k]
+                            tar = tars[k]
 
-                            next_row = [w, ds, eer]
+                            next_row = [w, ds, eer, tar]
                             bacc_genders = []
                             for i, classifier in enumerate(res_dict[ds].keys()):
                                 logging.info("Average CV B-ACC {} - {}:{}".format(ds, classifier, res_dict[ds][classifier]['balanced']))
@@ -77,6 +78,7 @@ def evaluate_model(log_root, model_root, experiment_name, reference_pth, pretrai
                                 next_row.append(res_dict[ds][classifier]['balanced'])
                                 bacc_genders.append(res_dict[ds][classifier]['balanced'])
                             bacc_gender_avg = np.mean(bacc_genders)
+                            next_row.append(bacc_gender_avg)
 
                             pic = calculate_pic(float(pre_privacy['EER']), eer, float(pre_privacy['BACC-Gender-AVG']), bacc_gender_avg)
 
@@ -94,11 +96,14 @@ def evaluate_model(log_root, model_root, experiment_name, reference_pth, pretrai
 
                         acc_bacc_res = evaluate_gender(img_files, gender_labels, id_labels, net=model)
                         res_dict[ds] = acc_bacc_res
+                    try:
+                        step = int(w.split("backbone")[0])
+                    except:
+                        step = 0
+                    eers, tars = callback_verification(step, model, 0, forced=True, get_metrics=True)
+                    
 
-                    step = int(w.split("backbone")[0])
-                    eers = callback_verification(step, model, 0, forced=True, get_metrics=True)
-
-                    header = ['Step', 'Dataset', 'EER', 'ACC-Gender-LogReg', 'BACC-Gender-LogReg', 'ACC-Gender-SVM', 'BACC-Gender-SVM', 'ACC-Gender-RBF', 'BACC-Gender-RBF','BACC-Gender-AVG']
+                    header = ['Step', 'Dataset', 'EER','TAR@FAR=0.1%', 'ACC-Gender-LogReg', 'BACC-Gender-LogReg', 'ACC-Gender-SVM', 'BACC-Gender-SVM', 'ACC-Gender-RBF', 'BACC-Gender-RBF','BACC-Gender-AVG']
 
                     with open(csv_path, 'a', encoding='UTF8') as f:
                         writer = csv.writer(f)
@@ -106,7 +111,9 @@ def evaluate_model(log_root, model_root, experiment_name, reference_pth, pretrai
 
                         for k, ds in enumerate(res_dict.keys()):
                             eer = eers[k]
-                            next_row = [w, ds, eer]
+                            tar = tars[k]
+
+                            next_row = [w, ds, eer, tar]
                             bacc_genders = []
                             for i, classifier in enumerate(res_dict[ds].keys()):
                                 logging.info("Average CV B-ACC {} - {}:{}".format(ds, classifier, res_dict[ds][classifier]['balanced']))
@@ -126,7 +133,7 @@ if __name__ == "__main__":
     parser.add_argument("--reference-pth", default="", help="Path to the reference csv results.")
     parser.add_argument("--pretrained-pth", default="", help="Path to the pretrained model.")
     parser.add_argument("--gpu-id", type=int, default=0, help="GPU ID to use.")
-    parser.add_argument("--ft", default=True, help="Enable fine-tuning.")
+    parser.add_argument("--ft", default=False, help="Enable fine-tuning.")
 
     args = parser.parse_args()
 

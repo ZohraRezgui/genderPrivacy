@@ -29,11 +29,13 @@ Provide instructions on how to install and set up the project. Include any depen
 pip install -r requirements.txt
 ```
 ## Data
-The datasets LFW, AgeDB, ColorFeret and a sample of VGGFace2 are used in this project. We provide the verification pairs for ColorFeret and VGGFace2. As for AgeDB and LFW, the standard verification pairs are used according to AgeDB-30 partition and the view 1 of the LFW verification protocole.
+The datasets LFW, AgeDB, ColorFeret and a sample of VGGFace2 are used in this project.
+- [] We provide the verification pairs for ColorFeret and VGGFace2. 
+- As for AgeDB and LFW, the standard verification pairs are used according to AgeDB-30 partition and the view 1 of the LFW verification protocole.
 
 ## Model
 All the finetuning training is performed on the iResNet50 architecture pretrained with an ArcFace loss on the VGGFace2 dataset.  
-We provide the weights model finetuned on AgeDB with the privacy constraint $L_{p} = 20 L{p_1} + L{p_2}$.
+- [] We provide the weights model finetuned on AgeDB with the privacy constraint $L_{p} = 20 L{p_1} + L{p_2}$.
 
 
 ## Training
@@ -45,7 +47,7 @@ python finetune.py
 Please refer to our paper for the choice of hyperparameters.
 ## Evaluate
 ```bash
-python eval/evaluation.py --log_root "path/to/log" --model_root "path/to/model/directory"  --experiment-name "experimentname" --reference_pth "path/to/reference/csv/results" --pretrained_pth "path/to/pretrained/model/weights" --ft True --gpu-id 0
+python eval/evaluation.py --log_root "path/to/log" --model_root "path/to/model/directory"  --experiment-name "experimentname" --reference_pth "path/to/reference/csv/results" --pretrained_pth "path/to/pretrained/model/weights" --ft False --gpu-id 0
 
 ```
 ```experiment-name``` should refer to the different types of training settings. For instance if you train using only one dataset e.g ColorFeret, ```experiment-name``` = ```OneDataset/ColorFeret```. The script ```evaluate.py``` will run the evaluations of all the models generated with this experiment setting.

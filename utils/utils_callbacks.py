@@ -17,6 +17,7 @@ class CallBackVerification(object):
         self.ver_list: List[object] = []
         self.ver_name_list: List[str] = []
         self.eer:  List[float] = []
+        self.val: List[float] = []
         self.img_list : List[str] = []
         self.gender_list : List[str] = []
         self.init_dataset(val_targets=val_targets, data_dir=rec_prefix, image_size=image_size)
@@ -24,9 +25,9 @@ class CallBackVerification(object):
     def ver_test(self, backbone: torch.nn.Module, global_step: int, epoch: int, writer=None):
         results = []
         for i in range(len(self.ver_list)):
-            acc1, std1, acc2, std2, xnorm, eer, embeddings_list = verification.test(
+            acc1, std1, acc2, std2, xnorm, eer, val, far, embeddings_list = verification.test(
                 self.ver_list[i], backbone, 10, 10)
-           
+            self.val.append(val)
             self.eer.append(eer)
             logging.info('[%s][%d]XNorm: %f' % (self.ver_name_list[i], global_step, xnorm))
             logging.info('[%s][%d]Accuracy-Flip: %1.5f+-%1.5f' % (self.ver_name_list[i], global_step, acc2, std2))
@@ -35,6 +36,8 @@ class CallBackVerification(object):
             logging.info(
                 '[%s][%d]Accuracy-Highest: %1.5f' % (self.ver_name_list[i], global_step, self.highest_acc_list[i]))
             logging.info('[%s][%d]EER: %1.5f' % (self.ver_name_list[i], global_step, eer))
+            logging.info('[%s][%d]TAR@FAR = %1.5f : %1.5f' % (self.ver_name_list[i], global_step, far, val))
+
             results.append(acc2)
             if writer:
                 writer.add_scalar("Verification Accuracy [%s]" % self.ver_name_list[i], acc2, epoch)
@@ -56,13 +59,13 @@ class CallBackVerification(object):
             self.ver_test(backbone, num_update, epoch, writer)
             backbone.train()
             if get_metrics:
-                return self.eer
+                return self.eer, self.val
         elif forced:
             backbone.eval()
             self.ver_test(backbone, num_update, epoch, writer)
             backbone.train()
             if get_metrics:
-                return self.eer
+                return self.eer, self.val
 
 class CallBackVerificationFT(object):
     def __init__(self, frequent, val_targets, rec_prefix, image_size=(112, 112)):
@@ -72,6 +75,8 @@ class CallBackVerificationFT(object):
         self.ver_list: List[object] = []
         self.ver_name_list: List[str] = []
         self.eer:  List[float] = []
+        self.val: List[float] = []
+
         self.img_list : List[str] = []
         self.gender_list : List[str] = [] 
         self.init_dataset(val_targets=val_targets, data_dir=rec_prefix, image_size=image_size)
@@ -79,8 +84,10 @@ class CallBackVerificationFT(object):
     def ver_test_ft(self, backbone: torch.nn.Module,  layer:torch.nn.Module,  global_step: int, epoch: int, writer=None):
         results = []
         for i in range(len(self.ver_list)):
-            acc1, std1, acc2, std2, xnorm, eer, embeddings_list = verification.testft(
+            acc1, std1, acc2, std2, xnorm, eer,val, far, embeddings_list = verification.testft(
                 self.ver_list[i], backbone,layer, 32, 10)
+            
+            self.val.append(val)
             self.eer.append(eer)
             logging.info('[%s][%d]XNorm: %f' % (self.ver_name_list[i], global_step, xnorm))
             logging.info('[%s][%d]Accuracy-Flip: %1.5f+-%1.5f' % (self.ver_name_list[i], global_step, acc2, std2))
@@ -89,6 +96,8 @@ class CallBackVerificationFT(object):
             logging.info(
                 '[%s][%d]Accuracy-Highest: %1.5f' % (self.ver_name_list[i], global_step, self.highest_acc_list[i]))
             logging.info('[%s][%d]EER: %1.5f' % (self.ver_name_list[i], global_step, eer))
+            logging.info('[%s][%d]TAR@FAR = %1.5f : %1.5f' % (self.ver_name_list[i], global_step, far, val))
+
             results.append(acc2)
             if writer:
                 writer.add_scalar("Verification Accuracy [%s]" % self.ver_name_list[i], acc2, epoch)
@@ -116,7 +125,7 @@ class CallBackVerificationFT(object):
             layer.train()
 
         if get_metrics:
-            return self.eer
+            return self.eer, self.val
 
 
 

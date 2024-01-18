@@ -51,7 +51,6 @@ def _get_model(ctx, model_path):
     return backbone
 
 def _get_model_ft(ctx, model_path, pretrained_pth):
-    # pretrained_pth = "/home/rezguiz/Privacy/output/original_vggface2/153250backbone.pth"
     if 'backbone' in os.path.basename(pretrained_pth):
         weight = torch.load(pretrained_pth)
     else:
@@ -294,8 +293,9 @@ def load_test_data():
     data_readers = {
         "lfw": read_lfw_data(os.path.join(cfg.data_dir, "lfw_aligned"), os.path.join(cfg.data_dir,'LFW_gender')),
         "agedb_30": read_agedb_data(os.path.join(cfg.data_dir, 'age_db_mtcnn')),
+        "custom_agedb30": read_agedb_data(os.path.join(cfg.data_dir, 'age_db_mtcnn')),
         "vggface2": read_vggface2_data(os.path.join(cfg.data_dir,'samples/vggface2'), os.path.join(cfg.data_dir,"VGGFace2/metadata/")),
-        # "colorferet": read_colorferet_data(os.path.join(cfg.data_dir, 'ColorFeret_aligned'), os.path.join(cfg.data_dir,"colorferet/dvd1/data/ground_truths/xml/subjects.xml"))
+        "colorferet": read_colorferet_data(os.path.join(cfg.data_dir, 'ColorFeret/ColorFeret_aligned'), os.path.join(cfg.data_dir,"colorferet/dvd1/data/ground_truths/xml/subjects.xml"))
     }
     return data_readers
 

@@ -143,6 +143,7 @@ def calculate_val(thresholds,
     dist = np.sum(np.square(diff), 1)
     indices = np.arange(nrof_pairs)
     # val, far = calculate_val_far(threshold)
+    
 
     for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
 
@@ -277,7 +278,7 @@ def test(data_set, backbone, batch_size, nfolds=10):
     tpr, fpr, accuracy, val, val_std, far = evaluate(embeddings, issame_list, nrof_folds=nfolds)
     acc2, std2 = np.mean(accuracy), np.std(accuracy)
     eer = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
-    return acc1, std1, acc2, std2, _xnorm,eer, embeddings_list
+    return acc1, std1, acc2, std2, _xnorm,eer, val, far, embeddings_list
 
 def testft(data_set, backbone, layer, batch_size, nfolds=10):
     print('testing verification..')
@@ -328,7 +329,7 @@ def testft(data_set, backbone, layer, batch_size, nfolds=10):
     tpr, fpr, accuracy, val, val_std, far = evaluate(embeddings, issame_list, nrof_folds=nfolds)
     acc2, std2 = np.mean(accuracy), np.std(accuracy)
     eer = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
-    return acc1, std1, acc2, std2, _xnorm,eer, embeddings_list
+    return acc1, std1, acc2, std2, _xnorm,eer, val, far, embeddings_list
 
 
 

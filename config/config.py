@@ -38,11 +38,11 @@ config.SE=False # SEModule
 
 
 
-config.rec = "/home/rezguiz/datasets/faces_webface_112x112" # path to the val folder
+config.rec = "/home/rezguiz/datasets/faces_bins_112x112" # path to the val folder
 config.num_epoch =  100
 config.warmup_epoch = -1
 config.val_targets =  ["lfw",  "agedb_30"]
-config.test_targets = ["lfw", "agedb_30","vggface2"]
+config.test_targets = ["vggface2", "lfw", "agedb_30", "colorferet"]
 config.eval_step= 1000
 
 
