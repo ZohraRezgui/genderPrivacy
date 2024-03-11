@@ -16,7 +16,7 @@ from utils.utils_callbacks import CallBackVerificationFT, CallBackLogging, CallB
 from utils.data_utils import make_weights_for_balanced_classes, get_gender, get_unique_gender, create_directory
 from utils.utils_logging import AverageMeter, init_logging
 from backbones.iresnet import  ProjectionLayer, iresnet100, iresnet50
-from backbones.sfnet import sfnet20
+
 
 def train():
     torch.cuda.empty_cache()
