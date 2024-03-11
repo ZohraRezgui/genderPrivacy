@@ -9,7 +9,7 @@ config.lr = 0.01
 config.headid_lr = 0.01  
 
 config.data = 'LFW-AgeDB'#ColorFeret, LFW, AgeDB, VGGFace2
-config.pretrained = "ElasticFace" #ArcFace, ElasticFace, SphereFace, SphereFace2
+config.pretrained = "ElasticFace" #ArcFace, ElasticFace, SphereFace,
 config.experiment = "FoldsDataset"
 config.loss="ArcFace"  
 
