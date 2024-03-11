@@ -18,7 +18,9 @@ import csv
 import xml.etree.ElementTree as ET
 from collections import namedtuple
 sys.path.append('/home/rezguiz/genderPrivacy')
-from backbones.iresnet import ProjectionLayer, iresnet50
+from backbones.iresnet import ProjectionLayer, iresnet50, iresnet100
+from backbones.sfnet import sfnet20
+
 from config.config import config as cfg
 
 def read_metrics_prepivacy(ds, reference_pth):
@@ -34,12 +36,18 @@ def calculate_pic(EER_v_pre, EER_v_post, ACC_g_pre, ACC_g_post):
     pic = gender_supp - identity_loss
     return pic
 
-def _get_model(ctx, model_path):
+def _get_model(ctx, model_path, net):
     if 'backbone' in os.path.basename(model_path):
         weight = torch.load(model_path)
     else:
         weight = torch.load(model_path)['backbone']
-    backbone = iresnet50().to(f"cuda:{ctx}")
+    if net== "iresnet50":
+        backbone = iresnet50().to(f"cuda:{ctx}")
+    elif net == "iresnet100":
+        backbone = iresnet100().to(f"cuda:{ctx}")
+    elif net == "sfnet20":
+        backbone = sfnet20().to(f"cuda:{ctx}")
+
     try:
         backbone.load_state_dict(weight)
     except:
@@ -50,7 +58,7 @@ def _get_model(ctx, model_path):
     backbone.eval()
     return backbone
 
-def _get_model_ft(ctx, model_path, pretrained_pth):
+def _get_model_ft(ctx, model_path, pretrained_pth, net):
     if 'backbone' in os.path.basename(pretrained_pth):
         weight = torch.load(pretrained_pth)
     else:
@@ -59,7 +67,12 @@ def _get_model_ft(ctx, model_path, pretrained_pth):
         weight_proj = torch.load(model_path)
     else:
         weight_proj = torch.load(model_path)['backbone']
-    frozen = iresnet50().to(f"cuda:{ctx}")
+    if net== "iresnet50":
+        frozen = iresnet50().to(f"cuda:{ctx}")
+    elif net == "iresnet100":
+        frozen = iresnet100().to(f"cuda:{ctx}")
+    elif net == "sfnet20":
+        frozen = sfnet20().to(f"cuda:{ctx}")
     project = ProjectionLayer(in_features=cfg.embedding_size, out_features=cfg.embedding_size, n_hidden=2).to(f"cuda:{ctx}")
     try:
         frozen.load_state_dict(weight)

@@ -16,11 +16,12 @@ from utils.utils_callbacks import CallBackVerificationFT, CallBackLogging, CallB
 from utils.data_utils import make_weights_for_balanced_classes, get_gender, get_unique_gender, create_directory
 from utils.utils_logging import AverageMeter, init_logging
 from backbones.iresnet import  ProjectionLayer, iresnet100, iresnet50
+from backbones.sfnet import sfnet20
 
 def train():
     torch.cuda.empty_cache()
     device = torch.device('cuda:0')
-    csvdir = os.path.join(cfg.log_dir,cfg.experiment, cfg.data)
+    csvdir = os.path.join(cfg.log_dir, cfg.pretrained, cfg.experiment, cfg.data, str(cfg.alpha) + "L1" +"_" + str(cfg.beta) + "L2" )
     csvpath = os.path.join(csvdir, 'config.csv')
 
 
@@ -48,9 +49,9 @@ def train():
     elif cfg.data=="LFW":
         trainset = LFWDataset(root_dir=os.path.join(cfg.data_dir, "lfw_aligned") ,attribute=os.path.join(cfg.data_dir,"LFW_gender" ))
     elif cfg.data == "ColorFeret":
-        trainset= ColorFeretDataset(root_dir=os.path.join(cfg.data_dir, 'ColorFeret_aligned'), attribute=os.path.join(cfg.data_dir,"colorferet/dvd1/data/ground_truths/xml/subjects.xml"))
+        trainset= ColorFeretDataset(root_dir=os.path.join(cfg.data_dir, 'ColorFeret','ColorFeret_aligned'), attribute=os.path.join(cfg.data_dir,"colorferet/dvd1/data/ground_truths/xml/subjects.xml"))
     elif cfg.data =="AgeDB":
-        trainset = AgeDBDataset(root_dir=os.path.join(cfg.data_dir, 'age_db_aligned'))
+        trainset = AgeDBDataset(root_dir=os.path.join(cfg.data_dir, 'age_db_mtcnn'))
     elif cfg.data =="LFW-ColorFeret":
         trainset = TrainFoldsDataset(root_dir=os.path.join(cfg.data_dir, 'balanced_train_folds'), fold=0 )
     elif cfg.data == "AgeDB-ColorFeret":
@@ -73,6 +74,8 @@ def train():
         backbone = iresnet100(num_features=cfg.embedding_size, use_se=cfg.SE).to(device)
     elif cfg.network == "iresnet50":
         backbone = iresnet50(dropout=0.4,num_features=cfg.embedding_size, use_se=cfg.SE).to(device)
+    elif cfg.network == "sfnet20":
+        backbone = sfnet20().to(device)
     else:
         backbone = None
         logging.info("load backbone failed!")
@@ -84,11 +87,18 @@ def train():
     label_f , label_m = get_unique_gender(trainset.labels, trainset.gender_attribute)
     
     try:
-        backbone_pth = os.path.join(cfg.output_ori, '153250' + "backbone.pth")
-        backbone.load_state_dict(torch.load(backbone_pth, map_location=device))
-        logging.info("backbone resume loaded successfully!")
-    except (FileNotFoundError, KeyError, IndexError, RuntimeError):
-        logging.info("load backbone resume init, failed!")
+        backbone_pth = os.path.join(cfg.output_ori, "backbone.pth")
+        weight = torch.load(backbone_pth, map_location=device)
+
+        backbone.load_state_dict(weight)
+        print("backbone loaded !")
+    except:
+        for key in list(weight.keys()):
+            weight[key.replace('module.', '')] = weight.pop(key)
+        backbone.load_state_dict(weight)
+ 
+    logging.info("backbone resume loaded successfully!")
+
 
 
     # Initialize identity weights and recognition loss type
@@ -182,8 +192,8 @@ def train():
             callback_verification(global_step, backbone, projection, epoch)
 
 
-        
-        callback_checkpoint(global_step, projection, header)
+        if (epoch+1) % 10 == 0:
+            callback_checkpoint(global_step, projection, header)
 
 
 if __name__ == "__main__":
