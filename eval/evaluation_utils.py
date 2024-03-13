@@ -19,7 +19,6 @@ import xml.etree.ElementTree as ET
 from collections import namedtuple
 sys.path.append('/home/rezguiz/genderPrivacy')
 from backbones.iresnet import ProjectionLayer, iresnet50, iresnet100
-from backbones.sfnet import sfnet20
 
 from config.config import config as cfg
 

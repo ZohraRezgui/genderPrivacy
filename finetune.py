@@ -74,8 +74,7 @@ def train():
         backbone = iresnet100(num_features=cfg.embedding_size, use_se=cfg.SE).to(device)
     elif cfg.network == "iresnet50":
         backbone = iresnet50(dropout=0.4,num_features=cfg.embedding_size, use_se=cfg.SE).to(device)
-    elif cfg.network == "sfnet20":
-        backbone = sfnet20().to(device)
+
     else:
         backbone = None
         logging.info("load backbone failed!")
