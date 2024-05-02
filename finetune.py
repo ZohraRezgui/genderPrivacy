@@ -2,7 +2,6 @@
 import csv
 import logging
 import os
-import time
 import torch
 import torch.nn.functional as F
 from torch.nn.utils import clip_grad_norm_
@@ -11,21 +10,21 @@ from torch.utils.data import DataLoader, sampler
 from config.config import config as cfg
 from utils import losses
 
-from utils.dataset import VGGDataset, LFWDataset, ColorFeretDataset, AgeDBDataset, TrainFoldsDataset
-from utils.utils_callbacks import CallBackVerificationFT, CallBackLogging, CallBackModelCheckpoint
+from utils.dataset import  FaceDataset
+from utils.utils_callbacks import CallBackEvaluation, CallBackLogging, CallBackModelCheckpoint
 from utils.data_utils import make_weights_for_balanced_classes, get_gender, get_unique_gender, create_directory
 from utils.utils_logging import AverageMeter, init_logging
-from backbones.iresnet import  ProjectionLayer, iresnet100, iresnet50
+from backbones.iresnet import  ProjectionLayer, iresnet100, iresnet50, FinetunedModel
 
 
 def train():
     torch.cuda.empty_cache()
     device = torch.device('cuda:0')
-    csvdir = os.path.join(cfg.log_dir, cfg.pretrained, cfg.experiment, cfg.data, str(cfg.alpha) + "L1" +"_" + str(cfg.beta) + "L2" )
+    csvdir = os.path.join(cfg.log_dir, cfg.pretrained, cfg.experiment, cfg.data, str(cfg.alpha) + "L1" +"_" + str(cfg.beta) + "L2")
     csvpath = os.path.join(csvdir, 'config.csv')
 
 
-    # Create output folders if it is not exist
+    # Create output and log folder if does not exist
     create_directory(cfg.output)
     create_directory(csvdir)
 
@@ -44,27 +43,12 @@ def train():
     init_logging(log_root, csvdir)
 
     # create instance of dataset
-    if cfg.data == "VGGFace2":
-        trainset = VGGDataset(root_dir=os.path.join(cfg.data_dir,'samples/vggface2'),attribute=os.path.join(cfg.data_dir,"VGGFace2/metadata/"))
-    elif cfg.data=="LFW":
-        trainset = LFWDataset(root_dir=os.path.join(cfg.data_dir, "lfw_aligned") ,attribute=os.path.join(cfg.data_dir,"LFW_gender" ))
-    elif cfg.data == "ColorFeret":
-        trainset= ColorFeretDataset(root_dir=os.path.join(cfg.data_dir, 'ColorFeret','ColorFeret_aligned'), attribute=os.path.join(cfg.data_dir,"colorferet/dvd1/data/ground_truths/xml/subjects.xml"))
-    elif cfg.data =="AgeDB":
-        trainset = AgeDBDataset(root_dir=os.path.join(cfg.data_dir, 'age_db_mtcnn'))
-    elif cfg.data =="LFW-ColorFeret":
-        trainset = TrainFoldsDataset(root_dir=os.path.join(cfg.data_dir, 'balanced_train_folds'), fold=0 )
-    elif cfg.data == "AgeDB-ColorFeret":
-        trainset = TrainFoldsDataset(root_dir=os.path.join(cfg.data_dir, 'balanced_train_folds'), fold=1 )
-    elif cfg.data == "LFW-AgeDB":
-        trainset = TrainFoldsDataset(root_dir=os.path.join(cfg.data_dir, 'balanced_train_folds'), fold=2 )
-    else:
-        raise NotImplementedError
+    trainset = FaceDataset(cfg.data_dir)
 
 
 
     # Creating trainloader with balanced batches
-    weights = make_weights_for_balanced_classes(trainset.imgidx, trainset.gender_attribute, nclasses=2)  
+    weights = make_weights_for_balanced_classes(trainset.imgidx, trainset.gender, nclasses=2)  
     weights = torch.DoubleTensor(weights)                                       
     trainsampler = sampler.WeightedRandomSampler(weights, len(weights))    
     train_loader = DataLoader(dataset=trainset, batch_size=cfg.batch_size, sampler=trainsampler, num_workers=16, pin_memory=True, drop_last=True)
@@ -73,25 +57,21 @@ def train():
     if cfg.network == "iresnet100":
         backbone = iresnet100(num_features=cfg.embedding_size, use_se=cfg.SE).to(device)
     elif cfg.network == "iresnet50":
-        backbone = iresnet50(dropout=0.4,num_features=cfg.embedding_size, use_se=cfg.SE).to(device)
+        backbone = iresnet50(num_features=cfg.embedding_size, use_se=cfg.SE).to(device)
 
     else:
         backbone = None
         logging.info("load backbone failed!")
         exit()
-    try:
-        projection = ProjectionLayer(in_features=cfg.embedding_size, out_features=cfg.embedding_size, n_hidden=2).to(device)
-    except (FileNotFoundError, KeyError, IndexError, RuntimeError):
-        logging.info("Error initializing network !")
-    label_f , label_m = get_unique_gender(trainset.labels, trainset.gender_attribute)
+    projection = ProjectionLayer(in_features=cfg.embedding_size, out_features=cfg.embedding_size, n_hidden=2).to(device)
+    label_f , label_m = get_unique_gender(trainset.id_labels, trainset.gender)
     
     try:
         backbone_pth = os.path.join(cfg.output_ori, "backbone.pth")
         weight = torch.load(backbone_pth, map_location=device)
-
         backbone.load_state_dict(weight)
         print("backbone loaded !")
-    except:
+    except KeyError:
         for key in list(weight.keys()):
             weight[key.replace('module.', '')] = weight.pop(key)
         backbone.load_state_dict(weight)
@@ -104,6 +84,7 @@ def train():
     header = losses.ArcFace(in_features=cfg.embedding_size, out_features=trainset.num_classes, s=cfg.s, m=cfg.m).to(device)
     constraint_one = losses.P1Loss()
     constraint_two = losses.P2Loss(label_f, label_m)
+    
     criterion = CrossEntropyLoss()
 
 
@@ -123,7 +104,7 @@ def train():
 
 
     # verification, logging and checkpoint
-    callback_verification = CallBackVerificationFT(cfg.eval_step, cfg.val_targets, cfg.rec)
+    callback_evaluation = CallBackEvaluation(cfg.eval_step, cfg.val_targets, cfg.rec)
     callback_logging = CallBackLogging(120, total_step, cfg.batch_size, writer=None)
     callback_checkpoint = CallBackModelCheckpoint(cfg.output)
 
@@ -139,6 +120,7 @@ def train():
         p.requires_grad = False
     header.train()
     projection.train()
+    net = FinetunedModel(backbone, projection)
 
 
     print("Number of iterations {}".format(len(train_loader)))
@@ -154,14 +136,14 @@ def train():
             label = label.to(device)
             gender = gender.to(device)
 
-            features = F.normalize(backbone(img))
-            proj_features = F.normalize(projection(features))
+            
+            proj_features = F.normalize(net(img))
 
 
             # ----------- RECOGNITION LOSS--------------
            
 
-            thetas_r = header(proj_features, label)
+            thetas_r = header(proj_features, label) 
             loss_r = criterion(thetas_r, label.detach())
                 
                    
@@ -172,12 +154,12 @@ def train():
                 
             loss_p1 = constraint_one(proj_features, female_idx, male_idx)
             loss_p2 = constraint_two(header, proj_features, female_idx, male_idx)
-            loss_p = cfg.alpha*loss_p1 + cfg.beta*loss_p2
+            loss_p = cfg.alpha*loss_p1 + cfg.beta*loss_p2 
             loss_t =  loss_r + loss_p 
 
 
             loss_t.backward()
-            clip_grad_norm_(projection.parameters(), max_norm=5, norm_type=2)
+            clip_grad_norm_(net.parameters(), max_norm=5, norm_type=2)
 
 
             opt_header.step()
@@ -188,7 +170,7 @@ def train():
             loss_p_meter.update(loss_p.item(), 1)       
             
             callback_logging(global_step, epoch, loss_r_meter, loss_p_meter)
-            callback_verification(global_step, backbone, projection, epoch)
+            callback_evaluation(global_step, net)
 
 
         if (epoch+1) % 10 == 0:

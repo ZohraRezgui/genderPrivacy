@@ -1,9 +1,6 @@
 import torch
 from torch import nn
 
-import math
-import numpy as np
-
 def l2_norm(input, axis = 1):
     norm = torch.norm(input, 2, axis, True)
     output = torch.div(input, norm)
@@ -45,7 +42,6 @@ class P2Loss(nn.Module):
         loss_p2 = female_featuresxmale_weights.mean() + male_featuresxfemale_weights.mean()
 
         return loss_p2
-
 
 class ArcFace(nn.Module):
     def __init__(self, in_features, out_features, s=64.0, m=0.50):

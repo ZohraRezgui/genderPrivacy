@@ -25,7 +25,7 @@
 
 
 import datetime
-import os
+# import os
 import pickle
 
 import mxnet as mx
@@ -37,9 +37,12 @@ from scipy import interpolate
 from sklearn.decomposition import PCA
 from sklearn.model_selection import KFold
 from scipy.optimize import brentq
-import torch.nn.functional as F
+# import torch.nn.functional as F
 
-
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.model_selection import StratifiedGroupKFold
+from sklearn.metrics import balanced_accuracy_score
 
 class LFold:
     def __init__(self, n_splits=2, shuffle=False):
@@ -202,14 +205,38 @@ def evaluate(embeddings, actual_issame, nrof_folds=10, pca=0):
                                       nrof_folds=nrof_folds)
     return tpr, fpr, accuracy, val, val_std, far
 
+def evaluate_gender(embeddings, id_labels, gender, nfolds=5):
+    cv = StratifiedGroupKFold(n_splits=nfolds, shuffle=False)
+
+    models = {
+        'LogReg': LogisticRegression(),
+        'SVM': SVC(kernel='linear', probability=True),
+        'RBF': SVC(kernel='rbf', probability=True)
+    }
+    results = {model_name: [] for model_name in models}
+
+    for i, (train_idxs, test_idxs) in enumerate(cv.split(embeddings, gender, id_labels)):
+        for model_name, model in models.items():
+            model_fit = model.fit(embeddings[train_idxs], gender[train_idxs])
+            model_preds = model_fit.predict(embeddings[test_idxs])
+            model_balanced_acc = balanced_accuracy_score(gender[test_idxs], model_preds)
+
+            results[model_name].append(model_balanced_acc)
+
+    for model_name in results.keys():
+        results[model_name] = np.mean(results[model_name])
+
+    return results
+
+
 @torch.no_grad()
 def load_bin(path, image_size):
     try:
         with open(path, 'rb') as f:
-            bins, issame_list = pickle.load(f)  # py2
+            bins, issame_list, bins_gender, id_labels, gender_labels = pickle.load(f)  # py2
     except UnicodeDecodeError as e:
         with open(path, 'rb') as f:
-            bins, issame_list = pickle.load(f, encoding='bytes')  # py3
+            bins, issame_list, bins_gender, id_labels, gender_labels = pickle.load(f, encoding='bytes')  # py3
     data_list = []
     for flip in [0, 1]:
         data = torch.empty((len(issame_list) * 2, 3, image_size[0], image_size[1]))
@@ -225,17 +252,27 @@ def load_bin(path, image_size):
                 img = mx.ndarray.flip(data=img, axis=2)
             data_list[flip][idx][:] = torch.from_numpy(img.asnumpy())
         if idx % 1000 == 0:
-            print('loading bin', idx)
+            print('loading verification bin', idx)
     print(data_list[0].shape)
-    return data_list, issame_list
+    data_gender_tensor = torch.empty((len(id_labels), 3, image_size[0], image_size[1]))
+    for idx in range(len(bins_gender)):
+        _bin = bins_gender[idx]
+        img = mx.image.imdecode(_bin)
+        if img.shape[1] != image_size[0]:
+            img = mx.image.resize_short(img, image_size[0])
+        img = nd.transpose(img, axes=(2, 0, 1))
+
+        data_gender_tensor[idx][:] = torch.from_numpy(img.asnumpy())
+        if idx % 1000 == 0:
+            print('loading gender bin', idx)
+    print(data_gender_tensor.shape)
+
+    return data_list, issame_list, data_gender_tensor, id_labels, gender_labels
+
 
 @torch.no_grad()
-def test(data_set, backbone, batch_size, nfolds=10):
-    print('testing verification..')
-    data_list = data_set[0]
-    issame_list = data_set[1]
+def extract_embeddings(data_list,backbone, batch_size):
     embeddings_list = []
-    time_consumed = 0.0
     for i in range(len(data_list)):
         data = data_list[i]
         embeddings = None
@@ -244,73 +281,41 @@ def test(data_set, backbone, batch_size, nfolds=10):
             bb = min(ba + batch_size, data.shape[0])
             count = bb - ba
             _data = data[bb - batch_size: bb]
-            time0 = datetime.datetime.now()
             img = ((_data / 255) - 0.5) / 0.5
-            net_out: torch.Tensor = backbone(img.to(next(backbone.parameters()).device))
+            net_out= backbone(img.to(next(backbone.parameters()).device))
             _embeddings = net_out.detach().cpu().numpy()
-            time_now = datetime.datetime.now()
-            diff = time_now - time0
-            time_consumed += diff.total_seconds()
             if embeddings is None:
                 embeddings = np.zeros((data.shape[0], _embeddings.shape[1]))
             embeddings[ba:bb, :] = _embeddings[(batch_size - count):, :]
             ba = bb
         embeddings_list.append(embeddings)
+    return embeddings_list
 
-    _xnorm = 0.0
-    _xnorm_cnt = 0
-    for embed in embeddings_list:
-        for i in range(embed.shape[0]):
-            _em = embed[i]
-            _norm = np.linalg.norm(_em)
-            _xnorm += _norm
-            _xnorm_cnt += 1
-    _xnorm /= _xnorm_cnt
 
-    embeddings = embeddings_list[0].copy()
-    embeddings = sklearn.preprocessing.normalize(embeddings)
-    acc1 = 0.0
-    std1 = 0.0
-    embeddings = embeddings_list[0] + embeddings_list[1]
-    embeddings = sklearn.preprocessing.normalize(embeddings)
-    print(embeddings.shape)
-    print('infer time', time_consumed)
-    tpr, fpr, accuracy, val, val_std, far = evaluate(embeddings, issame_list, nrof_folds=nfolds)
-    acc2, std2 = np.mean(accuracy), np.std(accuracy)
-    eer = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
-    return acc1, std1, acc2, std2, _xnorm,eer, val, far, embeddings_list
 
-def testft(data_set, backbone, layer, batch_size, nfolds=10):
+@torch.no_grad()
+def test(data_set, backbone, batch_size, nfolds_verif=10, nfolds_gender=5):
     print('testing verification..')
-    data_list = data_set[0]
+    verif_data_list = data_set[0]
     issame_list = data_set[1]
-    embeddings_list = []
+    gender_data_tensor = data_set[2]
+    id_labels = data_set[3]
+    gender_labels = data_set[4]
+    verif_embeddings_list = []
+    gender_embeddings = np.zeros((len(id_labels), 512), dtype=np.float32) 
     time_consumed = 0.0
-    for i in range(len(data_list)):
-        data = data_list[i]
-        embeddings = None
-        ba = 0
-        while ba < data.shape[0]:
-            bb = min(ba + batch_size, data.shape[0])
-            count = bb - ba
-            _data = data[bb - batch_size: bb]
-            time0 = datetime.datetime.now()
-            img = ((_data / 255) - 0.5) / 0.5
-            back_out: torch.Tensor = backbone(img.to(next(backbone.parameters()).device))
-            net_out = layer(F.normalize(back_out))
-            _embeddings = net_out.detach().cpu().numpy()
-            time_now = datetime.datetime.now()
-            diff = time_now - time0
-            time_consumed += diff.total_seconds()
-            if embeddings is None:
-                embeddings = np.zeros((data.shape[0], _embeddings.shape[1]))
-            embeddings[ba:bb, :] = _embeddings[(batch_size - count):, :]
-            ba = bb
-        embeddings_list.append(embeddings)
+    time0 = datetime.datetime.now()
+    verif_embeddings_list = extract_embeddings(verif_data_list, backbone, batch_size)
+    gender_embeddings = extract_embeddings([gender_data_tensor], backbone, batch_size)[0]
+    time_now = datetime.datetime.now()
+    diff = time_now - time0
+    time_consumed += diff.total_seconds()
+
+    
 
     _xnorm = 0.0
     _xnorm_cnt = 0
-    for embed in embeddings_list:
+    for embed in verif_embeddings_list:
         for i in range(embed.shape[0]):
             _em = embed[i]
             _norm = np.linalg.norm(_em)
@@ -318,18 +323,19 @@ def testft(data_set, backbone, layer, batch_size, nfolds=10):
             _xnorm_cnt += 1
     _xnorm /= _xnorm_cnt
 
-    embeddings = embeddings_list[0].copy()
-    embeddings = sklearn.preprocessing.normalize(embeddings)
+
     acc1 = 0.0
     std1 = 0.0
-    embeddings = embeddings_list[0] + embeddings_list[1]
+    embeddings = verif_embeddings_list[0] + verif_embeddings_list[1]
     embeddings = sklearn.preprocessing.normalize(embeddings)
+
+    gender_embeddings = sklearn.preprocessing.normalize(gender_embeddings)
     print(embeddings.shape)
+    print(gender_embeddings.shape)
     print('infer time', time_consumed)
-    tpr, fpr, accuracy, val, val_std, far = evaluate(embeddings, issame_list, nrof_folds=nfolds)
+    tpr, fpr, accuracy, val, val_std, far = evaluate(embeddings, issame_list, nrof_folds=nfolds_verif)
     acc2, std2 = np.mean(accuracy), np.std(accuracy)
     eer = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
-    return acc1, std1, acc2, std2, _xnorm,eer, val, far, embeddings_list
-
-
-
+    print('evaluating gender privacy..')
+    gender_bacc_dict = evaluate_gender(gender_embeddings, id_labels, gender_labels, nfolds_gender)
+    return acc1, std1, acc2, std2, _xnorm, eer, val, far, gender_bacc_dict

@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 __all__ = ['iresnet18', 'iresnet34', 'iresnet50', 'iresnet100']
 
@@ -97,7 +98,18 @@ class ProjectionLayer(nn.Module):
 
         return x
 
-        
+
+class FinetunedModel(nn.Module):
+  def __init__(self, backbone, layer):
+    super(FinetunedModel, self).__init__()
+    self.backbone = backbone
+    self.layer = layer
+    
+  def forward(self, x):
+    x = F.normalize(self.backbone(x))
+    x = self.layer(x)
+    return x
+  
 
 
 
@@ -222,17 +234,4 @@ def iresnet50(pretrained=False, progress=True, **kwargs):
 def iresnet100(pretrained=False, progress=True, **kwargs):
     return _iresnet('iresnet100', IBasicBlock, [3, 13, 30, 3], pretrained,
                     progress, **kwargs)
-def _test():
-    import torch
 
-    pretrained = False
-
-    models = [
-        iresnet100
-    ]
-
-
-
-
-if __name__ == "__main__":
-    _test()
