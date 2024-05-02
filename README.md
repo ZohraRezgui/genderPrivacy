@@ -57,7 +57,7 @@ python eval/evaluation.py --log_root "path/to/log" --model_root "path/to/model/d
 
 If you encounter any issues, have suggestions, or want to contribute improvements, please submit a pull request.
 
-## Acknowledgments
+## Citations
  This repository contains some code from [InsightFace: 2D and 3D Face Analysis Project](https://github.com/deepinsight/insightface).
   If you find this repository useful for you and use it for research purposes, please consider citing the following papers.
 
@@ -103,3 +103,9 @@ If you encounter any issues, have suggestions, or want to contribute improvement
 }
 ```
 
+## Acknowledgements
+
+This work was supported by the [PriMa](https://www.prima-itn.eu/) project
+that has received funding from the European Union’s Horizon
+2020 research and innovation programme under the Marie
+Skłodowska-Curie grant agreement No. 860315.
