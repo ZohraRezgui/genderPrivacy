@@ -24,7 +24,7 @@ The project utilizes datasets such as LFW, AgeDB, ColorFeret, and a sample of VG
 
 Ensure that your image dataset is organized in a specific folder structure. The root folder of the dataset should contain subject folders, and within each subject folder, you should place the images belonging to that subject. The subject folders should be named `subjectid_gender`:
 - `subjectid`: A unique identifier for the subject.
-- `gender`: The perceived gender expression (masculine or feminine) of the subject (0 or 1).
+- `gender`: The perceived gender expression (feminine 1 or masculine 0) of the subject.
 A sample directory tree could be:
 
 ```
