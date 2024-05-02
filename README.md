@@ -7,8 +7,7 @@
 
 This repository contains code to reproduce the results from our paper [**"Gender Privacy Angular Constraints for Face Recognition"**](10.1109/TBIOM.2024.3390586) published in the journal **IEEE Transactions on Biometrics, Behavior, and Identity Science** in 2024. By applying angular constraints during model finetuning, the project aims to minimize the risk of revealing individuals' gender information, thereby enhancing privacy at the template level of face recognition systems.
 
-| ![](./media/intro.png)       | ![](./media/angles-1.png)     |
-
+ <img src="./media/intro.png" width="800"> <img src="./media/angles-1.png" width="500">
 
 ## Installation
 To install the necessary dependencies for this project, use the provided `requirements.txt` file:
