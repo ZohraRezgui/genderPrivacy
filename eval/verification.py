@@ -1,4 +1,9 @@
-"""Helper for evaluation on the Labeled Faces in the Wild dataset 
+"""Helper for evaluation on the Labeled Faces in the Wild dataset.
+
+
+This file has been modified by Zohra Rezgui to include the evaluation of gender classification on the features.
+
+Original Author: David Sandberg
 """
 
 # MIT License
