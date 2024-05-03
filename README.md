@@ -5,7 +5,7 @@
 
 ## Description
 
-This repository contains code to reproduce the results from our paper [**"Gender Privacy Angular Constraints for Face Recognition"**](10.1109/TBIOM.2024.3390586) published in the journal **IEEE Transactions on Biometrics, Behavior, and Identity Science** in 2024. By applying angular constraints during model finetuning, the project aims to minimize the risk of revealing individuals' gender information, thereby enhancing privacy at the template level of face recognition systems.
+This repository contains code to reproduce the results from our paper [**"Gender Privacy Angular Constraints for Face Recognition"**](https://ieeexplore.ieee.org/abstract/document/10504554) published in the journal **IEEE Transactions on Biometrics, Behavior, and Identity Science** in 2024. By applying angular constraints during model finetuning, the project aims to minimize the risk of revealing individuals' gender information, thereby enhancing privacy at the template level of face recognition systems.
 
  <img src="./media/intro.png" width="500"> <img src="./media/angles-1.png" width="300">
 
@@ -105,7 +105,5 @@ If you encounter any issues, have suggestions, or want to contribute improvement
 
 ## Acknowledgements
 
-This work was supported by the [PriMa](https://www.prima-itn.eu/) project
-that has received funding from the European Union’s Horizon
-2020 research and innovation programme under the Marie
-Skłodowska-Curie grant agreement No. 860315.
+This work was supported by the [PriMa](https://www.prima-itn.eu/) project that has received funding from the European Union’s Horizon 2020 research and innovation programme under the Marie Skłodowska-Curie grant agreement No. 860315.
+
