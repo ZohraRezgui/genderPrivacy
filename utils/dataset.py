@@ -16,7 +16,7 @@ class FaceDataset(Dataset):
              transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
              ])
         self.root_dir = root_dir
-        self.imgidx, self.id_labels, self.gender, self.num_classes = self.scan(root_dir, self.attribute)
+        self.imgidx, self.id_labels, self.gender, self.num_classes = self.scan(root_dir)
 
 
     def scan(self,root):
