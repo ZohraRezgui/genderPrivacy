@@ -57,6 +57,7 @@ class CallBackEvaluation(object):
     def __call__(self, num_update, backbone: torch.nn.Module, forced: bool=False, get_metrics: bool=False):
         self.eer=[]
         self.tar=[]
+        self.gender_baccs = []
         if num_update > 0 and num_update % self.frequent == 0:
             backbone.eval()
             self.ver_test(backbone, num_update)
